@@ -11,13 +11,12 @@
   },
   "keywords": [
     "javascript",
-    "backend",
-    "frontend",
-    "fullstack"
+    "backend"
   ],
   "author": "Rishu",
   "license": "ISC",
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "prettier": "^3.1.1"
   }
 }
