@@ -48,9 +48,9 @@ const userSchema = new Schema(
         }
     },
     {
-        timeStamps: true
+        timestamps: true
     }
-);
+)
 
 //hash password before saving
 userSchema.pre("save", async function (next) {
