@@ -199,7 +199,101 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 });
 
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
 
+    const user = await User.findById(req.user?._id);
 
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+    if (!isPasswordCorrect) {
+        throw new ApiError(400, "Password is incorrect")
+    }
+
+    user.password = newPassword;
+
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    const { user } = req;
+    return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"));
+});
+
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const { fullName, email } = req.body;
+
+    if (!fullName || !email) {
+        throw new ApiError(400, "All fields are required")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                email
+            }
+        }, {
+        new: true
+    }).select("-password -refreshToken");
+
+    return res.status(200).json(new ApiResponse(200, user, "User updated successfully"));
+});
+
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path;
+
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is required")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    if (!avatar?.url) {
+        throw new ApiError(400, "Error uploading avatar file")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        }, {
+        new: true
+    }).select("-password -refreshToken");
+
+    return res.status(200).json(new ApiResponse(200, user, "User avatar updated successfully"));
+
+});
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+    const coverImageLocalPath = req.file?.path;
+
+    if (!coverImageLocalPath) {
+        throw new ApiError(400, "Cover image file is required")
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+    if (!coverImage?.url) {
+        throw new ApiError(400, "Error uploading cover image file")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url
+            }
+        },
+        { new: true }
+    ).select("-password -refreshToken");
+
+    return res.status(200).json(new ApiResponse(200, user, "User cover image updated successfully"));
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateCoverImage };
