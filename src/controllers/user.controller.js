@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async (userId) => {
     try {
@@ -12,7 +13,7 @@ const generateAccessAndRefreshToken = async (userId) => {
         const refreshToken = await user.generateRefreshToken();
         user.refreshToken = refreshToken;
         await user.save({ validateBeforeSave: false });
-        console.log(accessToken, refreshToken, "tokens", user, userId);
+        // console.log(accessToken, refreshToken, "tokens", user, userId);
         return { accessToken, refreshToken };
     } catch (err) {
         console.log(err, "error generating tokens");
@@ -37,7 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with email or username already exits")
     }
 
-    console.log(req.files, "files from req");
+    // console.log(req.files, "files from req");
     const avatarLocalPath = req.files?.avatar[0]?.path
     // const coverImageLocalPath = req.files?.coverImage[0]?.path
 
@@ -83,7 +84,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
     const { userName, email, password } = req.body;
-    console.log(userName, email, password);
 
     if (!(userName || email)) {
         throw new ApiError(400, "Username or email is required")
@@ -131,11 +131,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logoutUser = asyncHandler(async (req, res) => {
     const { user } = req;
-    await User.findByIdAndUpdate(user._id, {
-        $set: {
-            refreshToken: ""
-        }
-    },
+    await User.findByIdAndUpdate(user._id,
+        {
+            $unset: {
+                refreshToken: 1
+            }
+        },
         {
             new: true,
         }
@@ -158,7 +159,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
-    console.log(incomingRefreshToken, "incomingRefreshToken");
+    // console.log(incomingRefreshToken, "incomingRefreshToken");
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Please login to continue")
     }
@@ -167,7 +168,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET);
 
         const user = await User.findById(decodedToken?._id)
-        console.log(user, "user");
+        // console.log(user, "user");
         if (!user) {
             throw new ApiError(401, "Invalid refresh token");
         }
@@ -175,7 +176,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         if (user.refreshToken !== incomingRefreshToken) {
             throw new ApiError(401, "Invalid refresh token");
         }
-        console.log(user);
+        // console.log(user);
 
         const options = {
             httpOnly: true,
@@ -198,6 +199,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 const changeCurrentPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
+    console.log(oldPassword, newPassword, "oldPassword, newPassword");
 
     const user = await User.findById(req.user?._id);
 
@@ -221,7 +223,7 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 const updateAccountDetails = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body;
-
+    console.log(req.body, "req.body");
     if (!fullName || !email) {
         throw new ApiError(400, "All fields are required")
     }
@@ -340,18 +342,12 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             $project: {
                 fullName: 1,
                 userName: 1,
+                subscriberCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
                 avatar: 1,
                 coverImage: 1,
-                email: 1,
-                subscribers: 0,
-                subscribedTo: 0,
-                password: 0,
-                refreshToken: 0,
-                createdAt: 0,
-                updatedAt: 0,
-                isSubscribed: 1,
-                subscribedTo: 1,
-                channelsSubscribedToCount: 1
+                email: 1
             }
         }
     ]);

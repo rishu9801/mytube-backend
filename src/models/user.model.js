@@ -63,6 +63,7 @@ userSchema.pre("save", async function (next) {
 
 //added custom method to mongoose to check password.
 userSchema.methods.isPasswordCorrect = async function (password) {
+    console.log(password, this.password, "password");
     return await bcrypt.compare(password, this.password);
 }
 
